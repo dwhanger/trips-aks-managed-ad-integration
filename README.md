@@ -8,7 +8,7 @@ Guidance on onboarding samples to docs.microsoft.com/samples: https://review.doc
 Taxonomies for products and languages: https://review.docs.microsoft.com/new-hope/information-architecture/metadata/taxonomies?branch=master
 -->
 
-## NortonLifeLock
+## Tyee Software
 
 This project was originally presented during an OpenHack on Containers in Seattle.  In the mean time,
 these containers have been extended to turn the manual steps into actionable Terraform IaC that can 
