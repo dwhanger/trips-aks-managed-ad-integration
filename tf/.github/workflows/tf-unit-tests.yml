@@ -1,0 +1,53 @@
+name: 'Terraform Unit Tests'
+
+on:
+  push:
+
+jobs:
+  terraform-unit-tests:
+    name: 'Terraform Unit Tests'
+    runs-on: ubuntu-latest
+    environment: devint
+    
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: |
+        export TF_CLI_ARGS_init='-backend-config="storage_account_name=tysdscinfratfsa" -backend-config="container_name=tripaks" -backend-config="key=devintus-stack" -backend-config="resource_group_name=terraform-sc-rg" -backend-config="subscription_id=${{ env.ARM_SUBSCRIPTION_ID }}" -backend-config="tenant_id=${{ env.ARM_TENANT_ID }}" -backend-config="access_key=${{ env.ARM_ACCESS_KEY }}" -backend-config="client_id=${{ env.ARM_CLIENT_ID }}" -backend-config="client_secret=${{ env.ARM_CLIENT_SECRET }}"'
+        export TF_VAR_subscriptionid=${{ env.ARM_SUBSCRIPTION_ID }}
+        export TF_VAR_tenantid=${{ env.ARM_TENANT_ID }}
+        export TF_VAR_clientid=${{ env.ARM_CLIENT_ID }}
+        export TF_VAR_clientsecret=${{ env.ARM_CLIENT_SECRET }}
+        terraform init -var-file=devintus.tfvars -backend=false -reconfigure
+
+    # Validate terraform files
+    - name: Terraform Validate
+      run: terraform validate
+
+    # Checks that all Terraform configuration files adhere to a canonical format
+    - name: Terraform Format
+    #  run: terraform fmt -check -recursive
+      run: terraform fmt 
+    
+    # Perform a security scan of the terraform code using checkov
+    - name: Run Checkov action
+      id: checkov
+      uses: bridgecrewio/checkov-action@master
+      with: 
+        framework: terraform
+
+    # Upload results to GitHub Advanced Security
+    - name: Upload SARIF file
+      if: success() || failure()
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: results.sarif
+        category: checkov

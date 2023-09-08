@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tripinsights-poi
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tripinsights-poi
+  template:
+    metadata:
+      labels:
+        app: tripinsights-poi
+    spec:
+      containers:
+      - name: tripinsights-poi
+        image: __AZURE_CONTAINER_REGISTRY__.azurecr.io/tripinsights/poi:1.0     # azure container register name                                 ::{parm.azurecontainerregistryname}
+        volumeMounts:
+        - name: test
+          mountPath: /secrets
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        ports:
+        - containerPort: 80
+          name: poi
+      volumes:
+      - name: test
+        flexVolume:
+          driver: "azure/kv"
+          options: 
+            usevmmanagedidentity: "true"
+            keyvaultname: "__KEYVAULT_NAME__"   # keyvault name                                                                               ::{parm.keyvaultname}            
+            keyvaultobjectnames: SQL-USER;SQL-PASSWORD;SQL-SERVER;SQL-DBNAME    # list of KeyVault object names (semi-colon separated)
+            keyvaultobjectaliases: "SQL_USER;SQL_PASSWORD;SQL_SERVER;SQL_DBNAME"      # [OPTIONAL] list of KeyVault object aliases
+            keyvaultobjecttypes: secret;secret;secret;secret  # list of KeyVault object types: secret, key or cert (semi-colon separated)
+            keyvaultobjectversions: ""     # [OPTIONAL] list of KeyVault object versions (semi-colon separated), will get latest if empty
+            resourcegroup: "__RESOURCEGROUP_NAME__"              # [REQUIRED FOR < v0.0.14] the resource group of the KeyVault                      ::{parm.resourcegroup}
+            subscriptionid: "__SUBSCRIPTION_ID__"             # [REQUIRED FOR < v0.0.14] the subscription ID of the KeyVault     ::{parm.subscriptionid}
+            tenantid: "__TENANT_ID__"                   # the tenant ID of the KeyVault                                    ::{parm.tenantid}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tripinsights-poi
+spec:
+  ports:
+  - port: 80
+  selector:
+    app: tripinsights-poi
